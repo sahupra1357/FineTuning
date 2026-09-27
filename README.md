@@ -37,7 +37,7 @@ modal secret create wandb WANDB_API_KEY=xxx        # only if you enable W&B
 
 ```bash
 finetune train --config configs/smoke_test.yaml --backend mac     # Mac
-modal run modal_app.py --config configs/smoke_test.yaml           # Modal (T4)
+modal run modal_app.py --config configs/smoke_test.yaml           # Modal (L4)
 ```
 
 ## 3. Presets

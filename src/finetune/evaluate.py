@@ -126,10 +126,13 @@ def compare(run_dir: Path, adapter: str = "best", n_val_prompts: int = 5,
     def ppl(x):
         return None if x is None else round(math.exp(min(x, 50)), 3)
 
+    def rnd(x):
+        return None if x is None else round(x, 4)
+
     result = {
         "adapter": str(adapter_dir),
-        "base": {"val_loss": base["val_loss"], "val_ppl": ppl(base["val_loss"])},
-        "tuned": {"val_loss": tuned["val_loss"], "val_ppl": ppl(tuned["val_loss"])},
+        "base": {"val_loss": rnd(base["val_loss"]), "val_ppl": ppl(base["val_loss"])},
+        "tuned": {"val_loss": rnd(tuned["val_loss"]), "val_ppl": ppl(tuned["val_loss"])},
         "samples": [
             {**it, "base": b, "tuned": t} for it, b, t in zip(items, base["outputs"], tuned["outputs"])
         ],

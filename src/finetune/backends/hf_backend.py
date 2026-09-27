@@ -38,8 +38,11 @@ def load_model(cfg, for_training: bool = True):
         dtype = torch.float32
 
     hf_cfg = AutoConfig.from_pretrained(cfg.model.name_or_path, trust_remote_code=cfg.model.trust_remote_code)
+    import transformers
+
+    dtype_key = "dtype" if int(transformers.__version__.split(".")[0]) >= 5 else "torch_dtype"
     kwargs: dict[str, Any] = dict(
-        torch_dtype=dtype,
+        **{dtype_key: dtype},
         trust_remote_code=cfg.model.trust_remote_code,
         revision=cfg.model.revision,
         attn_implementation=cfg.model.attn_implementation,
@@ -174,9 +177,24 @@ def _latest_checkpoint(d: Path) -> str | None:
     return str(cks[-1]) if cks else None
 
 
+def _training_args(**kw):
+    """Build TrainingArguments across transformers 4.x / 5.x (renamed / removed arguments)."""
+    import inspect
+
+    from transformers import TrainingArguments
+
+    params = inspect.signature(TrainingArguments.__init__).parameters
+    if "eval_strategy" not in params and "evaluation_strategy" in params:
+        kw["evaluation_strategy"] = kw.pop("eval_strategy")
+    dropped = [k for k in kw if k not in params]
+    if dropped:
+        log.debug("TrainingArguments: ignoring unsupported %s", dropped)
+    return TrainingArguments(**{k: v for k, v in kw.items() if k in params})
+
+
 def train(ctx: RunContext) -> None:
     import torch
-    from transformers import Trainer, TrainerCallback, TrainingArguments
+    from transformers import Trainer, TrainerCallback
 
     cfg, t = ctx.cfg, ctx.cfg.training
     tok = ctx.tokenizer
@@ -244,7 +262,7 @@ def train(ctx: RunContext) -> None:
             ctx.on_checkpoint()
 
     has_val = len(ctx.val) > 0
-    args = TrainingArguments(
+    args = _training_args(
         output_dir=str(ctx.checkpoints_dir),
         per_device_train_batch_size=t.batch_size,
         per_device_eval_batch_size=t.batch_size,
@@ -253,7 +271,7 @@ def train(ctx: RunContext) -> None:
         max_steps=ctx.total_steps() if (ctx.dry_run_steps or t.max_steps > 0) else -1,
         learning_rate=t.learning_rate,
         lr_scheduler_type=t.lr_scheduler,
-        warmup_ratio=t.warmup_ratio,
+        warmup_steps=int(t.warmup_ratio * ctx.total_steps()),
         weight_decay=t.weight_decay,
         max_grad_norm=t.max_grad_norm,
         optim=OPTIMIZERS[t.optimizer] if cuda else "adamw_torch",

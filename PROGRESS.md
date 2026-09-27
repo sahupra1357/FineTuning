@@ -6,9 +6,9 @@ Tracks where the pipeline build stands so work can resume from any session.
 | # | Step | Status |
 |---|------|--------|
 | 1 | Skeleton, typed config (`src/finetune/config.py`), presets (`configs/`) | done |
-| 2 | Data pipeline (load, normalize, chat template, assistant-only masking, stats) | done (tests pending) |
+| 2 | Data pipeline (load, normalize, chat template, assistant-only masking, stats) | done |
 | 3 | Monitoring: metrics logger (JSONL + TensorBoard + W&B), run monitor, plots, HTML report, memory estimator | done |
-| 4 | CUDA backend (HF + PEFT, LoRA / bitsandbytes QLoRA) | todo |
+| 4 | CUDA backend (HF + PEFT, LoRA / bitsandbytes QLoRA) + shared orchestration (`pipeline.py`) | done — CPU smoke-tested incl. resume |
 | 5 | Modal app (GPU from config, volumes, secrets, resume, TensorBoard endpoint) | todo |
 | 6 | Mac backend (MLX LoRA / QLoRA) | todo |
 | 7 | Merge / eval / export + CLI | todo |
@@ -22,4 +22,5 @@ Tracks where the pipeline build stands so work can resume from any session.
 - TensorBoard and W&B both optional via `logging.tensorboard` / `logging.wandb.enabled`.
 
 ## Notes / known issues
-- None yet.
+- HF Hub is blocked from the build container; tests use an offline tiny Llama (`tests/tiny_model.py`).
+- CUDA/QLoRA paths (bitsandbytes, gpt-oss MXFP4 dequant) not executed here — need a GPU run on Modal.

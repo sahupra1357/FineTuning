@@ -9,7 +9,7 @@ Tracks where the pipeline build stands so work can resume from any session.
 | 2 | Data pipeline (load, normalize, chat template, assistant-only masking, stats) | done |
 | 3 | Monitoring: metrics logger (JSONL + TensorBoard + W&B), run monitor, plots, HTML report, memory estimator | done |
 | 4 | CUDA backend (HF + PEFT, LoRA / bitsandbytes QLoRA) + shared orchestration (`pipeline.py`) | done — CPU smoke-tested incl. resume |
-| 5 | Modal app (GPU from config, volumes, secrets, resume, TensorBoard endpoint) | todo |
+| 5 | Modal app (GPU from config, volumes, secrets, resume, TensorBoard endpoint) | done (merge fn needs step 7 `merge.py`) |
 | 6 | Mac backend (MLX LoRA / QLoRA) | todo |
 | 7 | Merge / eval / export + CLI | todo |
 | 8 | Tests + README | todo |

@@ -1,0 +1,15 @@
+# 7B LoRA on bf16 weights — needs ~40 GB GPU (A100-40GB/L40S) or a 32 GB Mac (short seqs).
+base: base.yaml
+method: lora
+model:
+  name_or_path: Qwen/Qwen2.5-7B-Instruct
+  params_b: 7.6
+  max_seq_length: 2048
+training:
+  batch_size: 2
+  grad_accum_steps: 8
+  learning_rate: 1.0e-4
+modal:
+  gpu: L40S
+  timeout_hours: 8
+  cost_per_gpu_hour: 1.95

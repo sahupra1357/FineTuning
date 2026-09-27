@@ -7,7 +7,7 @@ Tracks where the pipeline build stands so work can resume from any session.
 |---|------|--------|
 | 1 | Skeleton, typed config (`src/finetune/config.py`), presets (`configs/`) | done |
 | 2 | Data pipeline (load, normalize, chat template, assistant-only masking, stats) | done (tests pending) |
-| 3 | Monitoring: metrics logger (JSONL + TensorBoard + W&B), run monitor, plots, HTML report | todo |
+| 3 | Monitoring: metrics logger (JSONL + TensorBoard + W&B), run monitor, plots, HTML report, memory estimator | done |
 | 4 | CUDA backend (HF + PEFT, LoRA / bitsandbytes QLoRA) | todo |
 | 5 | Modal app (GPU from config, volumes, secrets, resume, TensorBoard endpoint) | todo |
 | 6 | Mac backend (MLX LoRA / QLoRA) | todo |

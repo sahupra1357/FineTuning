@@ -17,6 +17,6 @@ training:
   learning_rate: 1.0e-4
   optimizer: paged_adamw_8bit
 modal:
-  gpu: A100-80GB
+  gpu: L40S                 # ~25 GB estimated; use A100-80GB for longer seqs / bigger batches
   timeout_hours: 12
-  cost_per_gpu_hour: 2.50
+  cost_per_gpu_hour: 1.95

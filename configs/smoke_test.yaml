@@ -19,6 +19,6 @@ logging:
   sample_every_evals: 1
   sample_max_new_tokens: 48
 modal:
-  gpu: T4
+  gpu: L4                 # cheap, supports bf16
   timeout_hours: 0.5
-  cost_per_gpu_hour: 0.59
+  cost_per_gpu_hour: 0.80

@@ -299,16 +299,17 @@ def train(ctx: RunContext) -> None:
                     "perf/step_time_sec": (now - win_start) / max(win_n, 1),
                 }
                 mem = _peak_memory_gb()
-                if mem is not None:
+                if mem:
                     metrics["perf/memory_gb"] = mem
                 print(f"step {step}/{total_steps}  loss {metrics['train/loss']:.4f}  "
                       f"lr {metrics['train/learning_rate']:.2e}  {metrics['perf/tokens_per_sec']:.0f} tok/s"
-                      + (f"  mem {mem:.1f} GB" if mem is not None else ""))
+                      + (f"  mem {mem:.1f} GB" if mem else ""))
                 ctx.log_train(step, metrics, tokens=win_toks)
                 win_loss, win_toks, win_trained, win_start, win_gnorm, win_n = 0.0, 0, 0, now, 0.0, 0
 
             if has_val and step % t.eval_every_steps == 0:
                 ctx.on_eval(step, evaluate(), save_adapter, generate)
+                win_start = time.time()  # keep eval/sampling time out of throughput
             if step % t.save_every_steps == 0:
                 save_checkpoint(step)
 

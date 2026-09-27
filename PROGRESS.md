@@ -10,7 +10,7 @@ Tracks where the pipeline build stands so work can resume from any session.
 | 3 | Monitoring: metrics logger (JSONL + TensorBoard + W&B), run monitor, plots, HTML report, memory estimator | done |
 | 4 | CUDA backend (HF + PEFT, LoRA / bitsandbytes QLoRA) + shared orchestration (`pipeline.py`) | done — CPU smoke-tested incl. resume |
 | 5 | Modal app (GPU from config, volumes, secrets, resume, TensorBoard endpoint) | done (merge fn needs step 7 `merge.py`) |
-| 6 | Mac backend (MLX LoRA / QLoRA) | todo |
+| 6 | Mac backend (MLX LoRA / QLoRA) | done — tested on MLX Linux CPU build (LoRA, QLoRA, resume, mlx_lm adapter compat) |
 | 7 | Merge / eval / export + CLI | todo |
 | 8 | Tests + README | todo |
 
@@ -24,3 +24,4 @@ Tracks where the pipeline build stands so work can resume from any session.
 ## Notes / known issues
 - HF Hub is blocked from the build container; tests use an offline tiny Llama (`tests/tiny_model.py`).
 - CUDA/QLoRA paths (bitsandbytes, gpt-oss MXFP4 dequant) not executed here — need a GPU run on Modal.
+- MLX Metal-specific paths (wired limit, peak memory) only run on a real Mac.

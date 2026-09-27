@@ -11,8 +11,8 @@ Tracks where the pipeline build stands so work can resume from any session.
 | 4 | CUDA backend (HF + PEFT, LoRA / bitsandbytes QLoRA) + shared orchestration (`pipeline.py`) | done — CPU smoke-tested incl. resume |
 | 5 | Modal app (GPU from config, volumes, secrets, resume, TensorBoard endpoint) | done (merge fn needs step 7 `merge.py`) |
 | 6 | Mac backend (MLX LoRA / QLoRA) | done — tested on MLX Linux CPU build (LoRA, QLoRA, resume, mlx_lm adapter compat) |
-| 7 | Merge / eval / export + CLI | todo |
-| 8 | Tests + README | todo |
+| 7 | Merge / eval / export + CLI | done — eval + merge tested on both backends (CPU) |
+| 8 | Tests + README | done — 19 tests passing |
 
 ## Decisions
 - Mac trains with MLX (`mlx-lm`); CUDA trains with transformers + PEFT (+ bitsandbytes for QLoRA).
@@ -25,3 +25,14 @@ Tracks where the pipeline build stands so work can resume from any session.
 - HF Hub is blocked from the build container; tests use an offline tiny Llama (`tests/tiny_model.py`).
 - CUDA/QLoRA paths (bitsandbytes, gpt-oss MXFP4 dequant) not executed here — need a GPU run on Modal.
 - MLX Metal-specific paths (wired limit, peak memory) only run on a real Mac.
+
+## Next steps (for you)
+1. Mac: `./scripts/setup_mac.sh`, then `finetune train --config configs/smoke_test.yaml --backend mac`.
+2. Modal: `modal setup`, create the `huggingface` secret, then `modal run modal_app.py --config configs/smoke_test.yaml`.
+3. Swap in your dataset (`data.train_path`) and run `finetune prepare` to check the loss-mask preview.
+4. Real runs: `configs/7b_qlora.yaml` on the Mac, the 20B presets on Modal.
+
+## Possible follow-ups
+- Multi-GPU data parallel (accelerate/FSDP) — currently gpu_count > 1 uses device_map="auto" model sharding.
+- Sequence packing for short-example datasets.
+- Task-specific eval metrics (exact match / LLM-as-judge) as the "best checkpoint" criterion.

@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "finetune"
+version = "0.1.0"
+description = "LoRA / QLoRA fine-tuning pipeline for 7B-20B LLMs on Apple Silicon (MLX) and Modal GPUs (PyTorch/HF)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+dependencies = [
+    "pyyaml>=6.0",
+    "pydantic>=2.5",
+    "matplotlib>=3.7",
+    "tqdm>=4.66",
+    "transformers>=4.45",   # tokenizers + chat templates (used by both backends)
+    "datasets>=2.19",
+    "huggingface_hub>=0.24",
+]
+
+[project.optional-dependencies]
+# NVIDIA GPU training (Modal or any local CUDA box)
+cuda = [
+    "torch>=2.3",
+    "peft>=0.13",
+    "accelerate>=0.33",
+    "bitsandbytes>=0.43",
+    "safetensors>=0.4",
+]
+# Apple Silicon training
+mac = [
+    "mlx>=0.18",
+    "mlx-lm>=0.19",
+]
+# Observability (each is toggled in the YAML config)
+logging = [
+    "tensorboard>=2.15",
+    "tensorboardX>=2.6",
+    "wandb>=0.17",
+]
+modal = ["modal>=0.64"]
+dev = ["pytest>=8"]
+
+[project.scripts]
+finetune = "finetune.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

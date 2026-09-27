@@ -1,0 +1,17 @@
+# 7B QLoRA — fits a 24 GB GPU (A10G/L4) or a 16-32 GB Mac.
+base: base.yaml
+method: qlora
+model:
+  name_or_path: Qwen/Qwen2.5-7B-Instruct
+  mlx_name_or_path: mlx-community/Qwen2.5-7B-Instruct-4bit   # pre-quantized MLX weights
+  params_b: 7.6
+  max_seq_length: 2048
+training:
+  batch_size: 2
+  grad_accum_steps: 8
+  learning_rate: 2.0e-4
+  optimizer: paged_adamw_8bit      # CUDA only; MLX uses AdamW
+modal:
+  gpu: A10G
+  timeout_hours: 8
+  cost_per_gpu_hour: 1.10

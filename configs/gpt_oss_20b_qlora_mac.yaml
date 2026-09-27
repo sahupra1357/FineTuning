@@ -1,0 +1,20 @@
+# gpt-oss-20b QLoRA on Apple Silicon (M4 Max 32 GB): 4-bit MLX weights (~12 GB) + LoRA.
+#   1) sudo ./scripts/mac_wired_limit.sh 26624   (lets the GPU use ~26 GB of unified memory)
+#   2) finetune train --config configs/gpt_oss_20b_qlora_mac.yaml
+base: base.yaml
+method: qlora
+backend: mlx
+model:
+  name_or_path: openai/gpt-oss-20b
+  # Leave null to convert+quantize locally, or point at a pre-quantized mlx-community repo.
+  mlx_name_or_path: null
+  params_b: 20.9
+  max_seq_length: 1024
+lora:
+  r: 8
+  alpha: 16
+  num_layers: 16                 # adapt the top 16 blocks to save memory
+training:
+  batch_size: 1
+  grad_accum_steps: 16
+  learning_rate: 1.0e-4

@@ -1,0 +1,22 @@
+# ~20B-class QLoRA with a dense model (true 4-bit NF4 QLoRA on CUDA).
+# Mistral-Small-24B: 4-bit weights ~14 GB -> fits L40S 48GB / A100; on a 32 GB Mac use
+# max_seq_length <= 1024 and raise the GPU wired-memory limit (scripts/mac_wired_limit.sh).
+base: base.yaml
+method: qlora
+model:
+  name_or_path: mistralai/Mistral-Small-24B-Instruct-2501
+  mlx_name_or_path: mlx-community/Mistral-Small-24B-Instruct-2501-4bit
+  params_b: 23.6
+  max_seq_length: 2048
+lora:
+  r: 16
+  alpha: 32
+training:
+  batch_size: 1
+  grad_accum_steps: 16
+  learning_rate: 1.0e-4
+  optimizer: paged_adamw_8bit
+modal:
+  gpu: A100-80GB
+  timeout_hours: 12
+  cost_per_gpu_hour: 2.50

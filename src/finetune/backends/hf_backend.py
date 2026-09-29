@@ -120,11 +120,10 @@ class _ListDataset:
 
 
 class Collator:
-    """Right-pads a batch; labels padded with -100. Counts trained tokens for throughput."""
+    """Right-pads a batch; labels padded with -100."""
 
     def __init__(self, pad_id: int):
         self.pad_id = pad_id
-        self.tokens_seen = 0
 
     def __call__(self, batch: list[dict]) -> dict:
         import torch
@@ -138,7 +137,6 @@ class Collator:
             ids[i, :L] = torch.tensor(b["input_ids"])
             labels[i, :L] = torch.tensor(b["labels"])
             attn[i, :L] = 1
-        self.tokens_seen += int(attn.sum())
         return {"input_ids": ids, "labels": labels, "attention_mask": attn}
 
 
@@ -175,6 +173,13 @@ def make_generate_fn(model, tok, max_new_tokens: int):
 def _latest_checkpoint(d: Path) -> str | None:
     cks = sorted(d.glob("checkpoint-*"), key=lambda p: int(p.name.split("-")[-1])) if d.exists() else []
     return str(cks[-1]) if cks else None
+
+
+def _tokens_seen_mode():
+    """``include_num_input_tokens_seen``: "non_padding" on transformers 5.x, bool on 4.x."""
+    import transformers
+
+    return "non_padding" if int(transformers.__version__.split(".")[0]) >= 5 else True
 
 
 def _training_args(**kw):
@@ -234,7 +239,10 @@ def train(ctx: RunContext) -> None:
             if not logs or "loss" not in logs:
                 return
             now = time.time()
-            toks = collator.tokens_seen - self.tok_last
+            # Trainer's own counter: training batches only, counted when consumed (the collator runs
+            # ahead of the step via dataloader prefetch and also sees eval batches).
+            seen = int(getattr(state, "num_input_tokens_seen", 0) or 0)
+            toks = seen - self.tok_last
             m = {
                 "train/loss": logs["loss"],
                 "train/learning_rate": logs.get("learning_rate"),
@@ -244,7 +252,7 @@ def train(ctx: RunContext) -> None:
             }
             if cuda:
                 m["perf/memory_gb"] = torch.cuda.max_memory_allocated() / 1e9
-            self.t_last, self.tok_last = now, collator.tokens_seen
+            self.t_last, self.tok_last = now, seen
             # Same one-line format as the MLX backend (Trainer's own tqdm/dict printing is disabled).
             print(f"step {state.global_step}/{state.max_steps}  loss {m['train/loss']:.4f}  "
                   f"lr {m['train/learning_rate'] or 0:.2e}  {m['perf/tokens_per_sec']:.0f} tok/s"
@@ -261,8 +269,7 @@ def train(ctx: RunContext) -> None:
                 ctx.on_eval(state.global_step, metrics["eval_loss"], save_adapter, generate)
             except StopTraining as e:
                 self._halt(control, e)
-            # Keep eval/sampling time and eval tokens (same collator) out of training throughput.
-            self.t_last, self.tok_last = time.time(), collator.tokens_seen
+            self.t_last = time.time()  # keep eval/sampling time out of training throughput
 
         def on_save(self, args, state, control, **kw):
             ctx.on_checkpoint()
@@ -294,6 +301,7 @@ def train(ctx: RunContext) -> None:
         remove_unused_columns=False,
         dataloader_pin_memory=cuda,
         gradient_checkpointing=False,  # already configured on the model
+        include_num_input_tokens_seen=_tokens_seen_mode(),
         disable_tqdm=True,  # progress bars garble remote (Modal) logs; we print one line per log step
     )
     bridge = Bridge()

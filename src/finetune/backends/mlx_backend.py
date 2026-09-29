@@ -120,6 +120,31 @@ def build_lora_model(cfg, model_path: str):
 
 
 # --------------------------------------------------------------------------- helpers
+def _patch_moe_topk() -> None:
+    """Make gpt-oss expert routing trainable under LoRA.
+
+    mlx-lm's gpt-oss ``mlx_topk`` gathers router scores with indices from ``argpartition`` but
+    never stops their gradient. Once LoRA makes anything upstream of the router trainable, the
+    backward pass tries to differentiate w.r.t. those integer indices and fails with
+    "[gather_axis] Cannot calculate VJP with respect to indices". Stopping the gradient on the
+    indices matches torch.topk: gradients still reach the router through the selected scores.
+    """
+    try:
+        from mlx_lm.models import gpt_oss
+    except ImportError:
+        return
+    if getattr(gpt_oss.mlx_topk, "_finetune_patched", False):
+        return
+    import mlx.core as mx
+
+    def mlx_topk(a, k, axis=-1):
+        indices = mx.stop_gradient(mx.argpartition(a, kth=-k, axis=axis)[..., -k:])
+        return mx.take_along_axis(a, indices, axis=axis), indices
+
+    mlx_topk._finetune_patched = True
+    gpt_oss.mlx_topk = mlx_topk  # MLPBlock looks it up as a module global at call time
+
+
 def _set_wired_limit() -> None:
     import mlx.core as mx
 
@@ -190,6 +215,7 @@ def train(ctx: RunContext) -> None:
     cfg, t = ctx.cfg, ctx.cfg.training
     mx.random.seed(t.seed)
     _set_wired_limit()
+    _patch_moe_topk()
 
     model_path = resolve_model_path(cfg)
     model, mlx_tok, adapter_config = build_lora_model(cfg, model_path)

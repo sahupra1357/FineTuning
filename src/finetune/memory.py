@@ -58,18 +58,19 @@ def available_memory_gb(cfg: Config) -> tuple[float | None, str]:
         total = None
         if platform.system() == "Darwin":
             try:
-                total = int(subprocess.check_output(["sysctl", "-n", "hw.memsize"])) / 1e9
+                total = int(subprocess.check_output(["sysctl", "-n", "hw.memsize"]))
                 try:
                     wired = int(subprocess.check_output(["sysctl", "-n", "iogpu.wired_limit_mb"]))
                     if wired > 0:
-                        return wired / 1024, f"Mac GPU wired limit ({wired} MB)"
+                        return wired * 2**20 / 1e9, f"Mac GPU wired limit ({wired} MB)"
                 except Exception:
                     pass
             except Exception:
                 total = None
-        total = total or 32.0
+        total = total or 32 * 2**30
+        # Estimates are in decimal GB; the label uses GiB so it matches "About This Mac" (e.g. 36 GB).
         # macOS lets the GPU wire ~75% of unified memory by default (raise with mac_wired_limit.sh).
-        return total * 0.75, f"Mac unified memory {total:.0f} GB (≈75% usable by GPU)"
+        return total * 0.75 / 1e9, f"Mac unified memory {total / 2**30:.0f} GB (≈75% usable by GPU)"
     gpu = cfg.modal.gpu.split(":")[0].upper()
     mem = GPU_MEMORY_GB.get(gpu) or GPU_MEMORY_GB.get(cfg.modal.gpu)
     try:

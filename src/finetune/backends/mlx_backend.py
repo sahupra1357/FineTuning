@@ -39,9 +39,29 @@ def resolve_model_path(cfg) -> str:
         if out.exists():
             shutil.rmtree(out)
         out.parent.mkdir(parents=True, exist_ok=True)
-        convert(cfg.model.name_or_path, str(out), quantize=True, q_bits=cfg.quant.bits,
+        convert(_local_snapshot(cfg), str(out), quantize=True, q_bits=cfg.quant.bits,
                 q_group_size=cfg.quant.group_size, trust_remote_code=cfg.model.trust_remote_code)
     return str(out)
+
+
+# Same file set mlx-lm downloads for conversion.
+_MLX_ALLOW_PATTERNS = ["*.json", "model*.safetensors", "*.py", "tokenizer.model", "*.tiktoken",
+                       "tiktoken.model", "*.txt", "*.jsonl", "*.jinja"]
+
+
+def _local_snapshot(cfg) -> str:
+    """Local directory holding the model files (downloads them if needed; cached files are reused).
+
+    Passing a local path to ``mlx_lm.convert`` matters: given a repo id, mlx-lm's ``save`` re-resolves
+    it with ``snapshot_download(local_files_only=True)``, which newer huggingface_hub versions reject
+    as an "incomplete snapshot" because only the weights/config (not README, LICENSE, ...) were fetched.
+    """
+    name = cfg.model.name_or_path
+    if Path(name).exists():
+        return name
+    from huggingface_hub import snapshot_download
+
+    return snapshot_download(name, revision=cfg.model.revision, allow_patterns=_MLX_ALLOW_PATTERNS)
 
 
 def _is_quantized(model) -> bool:

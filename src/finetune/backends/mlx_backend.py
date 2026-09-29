@@ -104,7 +104,7 @@ def _set_wired_limit() -> None:
     import mlx.core as mx
 
     try:
-        info = mx.metal.device_info()
+        info = (getattr(mx, "device_info", None) or mx.metal.device_info)()
         limit = info["max_recommended_working_set_size"]
         setter = getattr(mx, "set_wired_limit", None) or mx.metal.set_wired_limit
         setter(limit)

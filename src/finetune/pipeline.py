@@ -209,7 +209,9 @@ class RunContext:
 def run_training(cfg: Config, persist: Callable[[], None] | None = None,
                  dry_run_steps: int | None = None, force: bool = False) -> Path:
     """Train with the configured backend; returns the run directory."""
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    # Our own messages at INFO; third-party libraries (httpx, matplotlib, ...) only at WARNING.
+    logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
+    logging.getLogger("finetune").setLevel(logging.INFO)
     run_dir = cfg.run_dir
     prior = RunState.load(run_dir)
     resuming = bool(prior and cfg.training.resume and prior.status != "completed")

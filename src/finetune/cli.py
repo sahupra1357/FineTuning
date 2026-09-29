@@ -84,6 +84,10 @@ def cmd_merge(args) -> None:
 
 
 def main(argv: list[str] | None = None) -> None:
+    import os
+
+    # Hides "PyTorch was not found" on the Mac (MLX) path, where torch is intentionally absent.
+    os.environ.setdefault("TRANSFORMERS_NO_ADVISORY_WARNINGS", "1")
     parser = argparse.ArgumentParser(prog="finetune", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="cmd", required=True)

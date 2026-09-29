@@ -288,7 +288,7 @@ def train(ctx: RunContext) -> None:
             win_gnorm += gnorm.item()
             win_n += 1
 
-            if step % cfg.logging.log_every_steps == 0 or step == total_steps:
+            if step % ctx.log_every_steps == 0 or step == total_steps:
                 now = time.time()
                 metrics = {
                     "train/loss": win_loss / max(win_trained, 1),
@@ -307,13 +307,13 @@ def train(ctx: RunContext) -> None:
                 ctx.log_train(step, metrics, tokens=win_toks)
                 win_loss, win_toks, win_trained, win_start, win_gnorm, win_n = 0.0, 0, 0, now, 0.0, 0
 
-            if has_val and step % t.eval_every_steps == 0:
+            if has_val and step % ctx.eval_every_steps == 0:
                 ctx.on_eval(step, evaluate(), save_adapter, generate)
                 win_start = time.time()  # keep eval/sampling time out of throughput
             if step % t.save_every_steps == 0:
                 save_checkpoint(step)
 
-        if has_val and step % t.eval_every_steps != 0:
+        if has_val and step % ctx.eval_every_steps != 0:
             ctx.on_eval(step, evaluate(), save_adapter, generate)
     except StopTraining as e:
         status, reason = e.status, e.reason

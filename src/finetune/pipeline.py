@@ -38,7 +38,7 @@ def preflight(cfg: Config, tok=None, train=None, val=None, stats=None, write_to:
         tok = load_tokenizer(cfg)
     if train is None:
         train, val, stats = prepare_datasets(cfg, tok)
-    est = estimate_memory(cfg)
+    est = estimate_memory(cfg, stats)
     lines = [
         f"Run: {cfg.run_name}   backend={cfg.backend}   method={cfg.method}",
         f"Model: {cfg.model.name_or_path}",
@@ -91,6 +91,22 @@ class RunContext:
     @property
     def checkpoints_dir(self) -> Path:
         return self.run_dir / "checkpoints"
+
+    @property
+    def eval_every_steps(self) -> int:
+        """Eval interval; dry runs evaluate ~4 times so they show a validation curve."""
+        every = self.cfg.training.eval_every_steps
+        if self.dry_run_steps:
+            every = min(every, max(1, self.dry_run_steps // 4))
+        return every
+
+    @property
+    def log_every_steps(self) -> int:
+        """Log interval; dry runs log ~10 times so the loss-trend health check has data."""
+        every = self.cfg.logging.log_every_steps
+        if self.dry_run_steps:
+            every = min(every, max(1, self.dry_run_steps // 10))
+        return every
 
     def total_steps(self) -> int:
         t = self.cfg.training

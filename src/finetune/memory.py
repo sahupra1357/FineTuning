@@ -84,11 +84,22 @@ def available_memory_gb(cfg: Config) -> tuple[float | None, str]:
     return (mem * cfg.modal.gpu_count if mem else None), f"{cfg.modal.gpu} x{cfg.modal.gpu_count}"
 
 
-def estimate_memory(cfg: Config) -> dict[str, Any]:
+def estimate_memory(cfg: Config, stats: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Estimate peak training memory.
+
+    ``stats`` (from ``prepare_datasets``) makes the estimate data-aware: batches are padded to
+    their longest example, so the longest tokenized example (already capped at max_seq_length)
+    is the real worst case. Without stats every sequence is assumed to fill max_seq_length.
+    """
     d = _model_dims(cfg)
     P = d["params_b"] * 1e9
     h, L, V, inter = d["hidden"], d["layers"], d["vocab"], d["intermediate"]
     b, s = cfg.training.batch_size, cfg.model.max_seq_length
+    seq_source = "max_seq_length (worst case)"
+    longest = max((st.get("max_len") or 0 for st in (stats or {}).values()), default=0)
+    if longest:
+        s = min(s, longest)
+        seq_source = "longest example in dataset"
 
     if cfg.method == "qlora":
         bytes_per_param = 0.5 * 1.1 if cfg.quant.bits == 4 else 1.06  # + quant constants
@@ -123,6 +134,8 @@ def estimate_memory(cfg: Config) -> dict[str, Any]:
         "activations_gb": gb(activations),
         "logits_gb": gb(logits),
         "total_gb": gb(total),
+        "seq_len": s,
+        "seq_len_source": seq_source,
         "available_gb": round(avail, 1) if avail else None,
         "hardware": label,
     }

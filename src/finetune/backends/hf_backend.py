@@ -277,9 +277,9 @@ def train(ctx: RunContext) -> None:
         optim=OPTIMIZERS[t.optimizer] if cuda else "adamw_torch",
         bf16=bf16,
         fp16=cuda and not bf16,
-        logging_steps=cfg.logging.log_every_steps,
+        logging_steps=ctx.log_every_steps,
         eval_strategy="steps" if has_val else "no",
-        eval_steps=t.eval_every_steps,
+        eval_steps=ctx.eval_every_steps,
         save_strategy="steps",
         save_steps=t.save_every_steps,
         save_total_limit=max(1, t.keep_last_checkpoints),
@@ -305,7 +305,7 @@ def train(ctx: RunContext) -> None:
         trainer.train(resume_from_checkpoint=resume_from)
         if bridge.stop:
             status, reason = bridge.stop.status, bridge.stop.reason
-        elif has_val and trainer.state.global_step % t.eval_every_steps != 0:
+        elif has_val and trainer.state.global_step % ctx.eval_every_steps != 0:
             trainer.evaluate()  # make sure the last steps are evaluated
     except KeyboardInterrupt:
         save_adapter(ctx.run_dir / "interrupted")  # last weights; resume uses checkpoints/

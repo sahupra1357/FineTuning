@@ -32,6 +32,9 @@ from pathlib import Path
 
 import modal
 
+# The local entrypoint imports transformers (tokenizer config) without torch; hide that advisory.
+os.environ.setdefault("TRANSFORMERS_NO_ADVISORY_WARNINGS", "1")
+
 ROOT = Path(__file__).parent
 sys.path.insert(0, str(ROOT / "src"))  # local import of finetune.config for the entrypoint
 
@@ -53,7 +56,7 @@ image = (
         "bitsandbytes>=0.45",
         "datasets>=3.0",
         "safetensors",
-        "huggingface_hub[hf_transfer]",
+        "huggingface_hub",
         "pydantic>=2.5",
         "pyyaml",
         "matplotlib",
@@ -64,7 +67,7 @@ image = (
     )
     .env({
         "HF_HOME": "/cache/hf",
-        "HF_HUB_ENABLE_HF_TRANSFER": "1",
+        "HF_XET_HIGH_PERFORMANCE": "1",  # fast Xet downloads (replaces deprecated hf_transfer)
         "PYTHONPATH": "/root/src",
         "TOKENIZERS_PARALLELISM": "false",
     })

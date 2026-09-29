@@ -245,6 +245,10 @@ def train(ctx: RunContext) -> None:
             if cuda:
                 m["perf/memory_gb"] = torch.cuda.max_memory_allocated() / 1e9
             self.t_last, self.tok_last = now, collator.tokens_seen
+            # Same one-line format as the MLX backend (Trainer's own tqdm/dict printing is disabled).
+            print(f"step {state.global_step}/{state.max_steps}  loss {m['train/loss']:.4f}  "
+                  f"lr {m['train/learning_rate'] or 0:.2e}  {m['perf/tokens_per_sec']:.0f} tok/s"
+                  + (f"  mem {m['perf/memory_gb']:.1f} GB" if cuda else ""), flush=True)
             try:
                 ctx.log_train(state.global_step, m, tokens=toks)
             except StopTraining as e:
@@ -257,6 +261,8 @@ def train(ctx: RunContext) -> None:
                 ctx.on_eval(state.global_step, metrics["eval_loss"], save_adapter, generate)
             except StopTraining as e:
                 self._halt(control, e)
+            # Keep eval/sampling time and eval tokens (same collator) out of training throughput.
+            self.t_last, self.tok_last = time.time(), collator.tokens_seen
 
         def on_save(self, args, state, control, **kw):
             ctx.on_checkpoint()
@@ -288,7 +294,7 @@ def train(ctx: RunContext) -> None:
         remove_unused_columns=False,
         dataloader_pin_memory=cuda,
         gradient_checkpointing=False,  # already configured on the model
-        disable_tqdm=False,
+        disable_tqdm=True,  # progress bars garble remote (Modal) logs; we print one line per log step
     )
     bridge = Bridge()
     trainer = Trainer(
@@ -296,6 +302,9 @@ def train(ctx: RunContext) -> None:
         train_dataset=_ListDataset(ctx.train), eval_dataset=_ListDataset(ctx.val) if has_val else None,
         callbacks=[bridge],
     )
+    from transformers.trainer_callback import PrinterCallback
+
+    trainer.remove_callback(PrinterCallback)  # would print raw metric dicts next to our step lines
 
     resume_from = _latest_checkpoint(ctx.checkpoints_dir) if ctx.resuming else None
     status, reason = "completed", None
